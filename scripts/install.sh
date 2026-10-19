@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-python3 -c 'import sys; assert sys.version_info >= (3,12), "Setup requires Python 3.12+"'
+python3 -c 'import sys; assert sys.version_info >= (3,11), "Setup requires Python 3.11+"'
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 if [[ ! -f data/tools/READY.json ]]; then

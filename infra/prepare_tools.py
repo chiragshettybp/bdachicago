@@ -26,8 +26,8 @@ def main():
             archive.extractall(tools, filter="data")
         (tools / dirname).rename(tools / name)
     subprocess.run(["docker", "pull", JAVA_IMAGE], check=True)
-    name = "fdc-java-export"
-    subprocess.run(["docker", "create", "--name", name, "--label", "project=fdc-track-b", JAVA_IMAGE], check=True)
+    name = "electricity-java-export"
+    subprocess.run(["docker", "create", "--name", name, "--label", "project=electricity-load-analytics", JAVA_IMAGE], check=True)
     try:
         (tools / "java").mkdir()
         subprocess.run(["docker", "cp", name + ":/opt/java/openjdk/.", str(tools / "java")], check=True)

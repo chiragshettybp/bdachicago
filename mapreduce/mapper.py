@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Nutrient totals by food type and nutrient ID. Input: prepared nutrient TSV."""
+"""Map daily client energy into annual client groups. Input: daily.tsv."""
 import math
 import sys
 
@@ -7,17 +7,15 @@ import sys
 def map_rows(source, destination):
     for number, line in enumerate(source, 1):
         fields = line.rstrip("\n").split("\t")
-        if len(fields) != 7:
-            raise ValueError(f"Expected 7 fields at line {number}")
-        _, kind, _, nutrient_id, _, _, amount = fields
-        value = float(amount)
-        int(nutrient_id)
-        if not math.isfinite(value):
-            raise ValueError(f"Nonfinite amount at line {number}")
-        if value < 0:
-            print("reporter:counter:FoodData,NegativeAmountsFiltered,1", file=sys.stderr)
-            continue
-        print(f"{kind}|{nutrient_id}\t{value!r}\t1", file=destination)
+        if len(fields) != 6:
+            raise ValueError(f"Expected six fields at line {number}")
+        day, client, intervals, energy, _, peak = fields
+        if len(day) != 10 or day[4] != "-" or int(intervals) != 96:
+            raise ValueError(f"Invalid daily record at line {number}")
+        total, peak_kw = float(energy), float(peak)
+        if not math.isfinite(total) or not math.isfinite(peak_kw) or total < 0 or peak_kw < 0:
+            raise ValueError(f"Invalid reading at line {number}")
+        print(f"{client}|{day[:4]}\t{total!r}\t{total!r}\t{peak_kw!r}", file=destination)
 
 
 if __name__ == "__main__":

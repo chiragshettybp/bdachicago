@@ -1,60 +1,89 @@
-# USDA FoodData Central — Track B
+# Electricity Load Analytics
 
-BCS714D Big Data Analytics · 2026–2027.
+Big Data Analytics project using the UCI [ElectricityLoadDiagrams20112014
+dataset](https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014).
+It contains 370 client columns with 15-minute power readings from 2011 through
+2014.
 
-We calculate food/nutrient summaries using MongoDB, Hadoop MapReduce, Pig and
-Hive, check that the answers agree, compare performance, and display saved
-results in a Flask dashboard.
+The project validates the wide source file, converts it to daily energy records,
+and compares annual per-client summaries using Python, MongoDB, Hadoop
+MapReduce, Pig, and Hive. A two-page Flask dashboard lets users inspect a
+client's four-year profile or rank clients by a selected year.
 
-Dataset: [entire October 31, 2024 CSV package](https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_csv_2024-10-31.zip)
-· [USDA documentation](https://fdc.nal.usda.gov/download-datasets/).
+## Energy interpretation
 
-## Which document should I read?
+- Source values are kW; each interval represents 15 minutes, so interval energy
+  in kWh is `kW / 4`.
+- Every daily record contains all 96 intervals. Zero readings are data, not
+  missing values; zero-filled periods before a client appears are retained.
+- Timestamps label interval ends. A midnight timestamp is assigned to the
+  preceding day, preserving the dataset's 96 records per day.
+- The original Portuguese-time daylight-saving conventions are preserved.
+  Spring-transition zeroes and autumn-transition aggregated consumption make
+  time-of-day comparisons around those dates special cases.
 
-| Document | When you need it |
-| --- | --- |
-| [50,000-food laptop run](run%2050%2C000.md) | Commands, explanations and the saved 50,000-food dashboard run. |
-| [Laptop demo](docs/LAPTOP-DEMO.md) | Start the dashboard or repeat your small laptop test. |
-| [Three-system walkthrough](docs/THREE-SYSTEM-RUN.md) | Set up and run the full dataset on three college computers, step by step. |
-| [Architecture explained](docs/ARCHITECTURE.md) | Understand what the program and each tool do. |
-| [Presentation Q&A](docs/PRESENTATION-QA.md) | Prepare answers for your presentation/viva. |
-| [Report checklist](docs/report-outline.md) | Assemble the Part 1 and Part 2 submission evidence. |
-| [Validation record](docs/validation.md) | See what actually passed and what is still pending. |
-| [Technical reference](docs/TECHNICAL-REFERENCE.md) | Optional: fresh setup, subset export, troubleshooting and output-file details. |
+## Quick start (Python, Windows or Linux)
 
-## Current status
+Use Python 3.11 or newer. Install dependencies:
 
-- **Full dataset:** prepared on the user's laptop and all 34 CSVs imported into
-  MongoDB. Full-data MongoDB analytics was interrupted, not completed.
-- **10,000-food linked subset:** MongoDB profiling and cross-system
-  MapReduce/Pig/Hive checks passed on the user's laptop.
-- **50,000-food linked subset:** MongoDB analytics and cross-system checks passed
-  on the laptop, covering 1,126,928 linked nutrient records.
-- **Part 2:** Flask dashboard implemented and opened successfully on the laptop.
-- **Still pending:** full-data analytics/benchmarks, three physical college
-  systems, final report and presentation evidence.
-
-The dashboard separates **View results** from **Run analysis**. Choose a subset,
-a custom size, or the entire dataset using the fixed source database. Optional
-controls reuse exports and switch services; progress/errors update automatically.
-Each theme has a requirement checklist with code and measured evidence. On the
-college master use `--view-only` so laptop Docker controls are disabled. See the
-[laptop guide](docs/LAPTOP-DEMO.md).
-
-The production workflow has no sampling limit. Development-subset commands are
-explicitly separate and labelled. Three laptop containers do not satisfy the
-three-physical-system requirement.
-
-## Get started on your existing laptop
-
-From Ubuntu:
-
-```bash
-cd ~/BDA-Assignment
-git pull --ff-only origin main
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m fdc.dashboard
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-Open the address Flask prints in your local browser. Saved results are needed;
-GitHub does not contain your datasets, database files or benchmark outputs.
+Download the dataset from [UCI](https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014)
+and place its `LD2011_2014.txt` file at
+`electricityloaddiagrams20112014/LD2011_2014.txt`. (The supplied local copy is
+already in that location.) Then produce annual summaries:
+
+```powershell
+python -m electricity prepare --input "electricityloaddiagrams20112014/LD2011_2014.txt" --output "data/prepared/electricity"
+python -m electricity analyze --daily "data/prepared/electricity/daily.tsv" --output "results/electricity"
+python -m electricity dashboard --results "results/electricity"
+```
+
+Open the local address printed by Flask. Page 1 accepts a client ID such as
+`MT_001`, shows annual metrics, and lets the user select the pie-chart basis:
+Total kWh, Mean kWh/day, Max daily kWh, or Peak kW. The chart shows each year's
+share of the sum of that selected metric across the client's available years.
+A separate bar comparison identifies highest/lowest years by Total kWh. Page 2
+accepts a year, ranking metric, and Top K (1 through 370), then highlights the
+highest and lowest clients by that metric and lists the top K.
+
+Pie slices compare a single selected metric across years. The four measures are
+not combined into one pie because kW and kWh/day are different units.
+
+The source is approximately 711 MB;
+preparation streams it and writes a daily client TSV. It does not load the full
+input into memory.
+
+## Optional MongoDB
+
+Start a local MongoDB service, then run:
+
+```powershell
+python -m electricity mongo --daily "data/prepared/electricity/daily.tsv" --database electricity_2011_2014
+```
+
+The MongoDB command imports daily client records and aggregates annual energy,
+mean daily energy, maximum daily energy, and peak kW.
+
+## Hadoop, Pig, and Hive
+
+The distributed toolchain is set up separately; see
+[docs/THREE-SYSTEM-RUN.md](docs/THREE-SYSTEM-RUN.md). Python preparation writes
+`daily.tsv`; Hadoop Streaming, Pig, and Hive consume that same normalized data.
+The Mapper/Reducer can also be cross-checked locally by the `analyze` command.
+
+## Project guide
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Laptop demo](docs/LAPTOP-DEMO.md)
+- [Three-system walkthrough](docs/THREE-SYSTEM-RUN.md)
+- [Presentation Q&A](docs/PRESENTATION-QA.md)
+- [Hadoop cluster assignment Q&A](docs/possibleQA.md)
+- [Report outline](docs/report-outline.md)
+- [Validation record](docs/validation.md)
+- [Technical reference](docs/TECHNICAL-REFERENCE.md)
+
+The large source file, generated `data/`, and `results/` are local and excluded
+from Git. Use a new output directory for every preparation or analysis run.

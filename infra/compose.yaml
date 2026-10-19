@@ -1,4 +1,4 @@
-name: fdc-track-b
+name: electricity-load-analytics
 x-node: &node
   image: python:3.11-bookworm@sha256:5887f265d8d44d8b4734d3658b21d668edf5aaf92e4945bc0c984afbfab105d3
   working_dir: /project

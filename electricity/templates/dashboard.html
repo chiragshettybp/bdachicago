@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Electricity Client Analytics</title>
+  <style>
+    :root{color-scheme:light;--wine:#7F011F;--berry:#890149;--cream:#F5EBD0;--ivory:#F3F3E7;--ink:#34131f;--muted:#725b63;--line:#e5d8ce;--surface:#fffdf8;--shadow:0 16px 38px #4a142012;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--ivory)}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 12% 0%,#f5ebd080,transparent 34rem),var(--ivory);min-height:100vh}main{max-width:1240px;margin:auto;padding:34px 22px 24px}
+    header,section{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:25px;margin-bottom:18px;box-shadow:var(--shadow)}
+    header{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:26px;min-height:230px;padding:34px 38px;background:linear-gradient(118deg,var(--wine),#61012a 67%,var(--berry));border:0;color:#fff}
+    header:after{content:"";position:absolute;z-index:-1;width:430px;height:430px;border:1px solid #ffffff20;border-radius:50%;right:-130px;top:-170px;box-shadow:0 0 0 34px #ffffff0b,0 0 0 74px #ffffff08}
+    .hero-copy{max-width:680px}header .eyebrow{color:var(--cream);font-size:11px;font-weight:800;letter-spacing:2px}
+    h1{margin:12px 0 8px;font-size:clamp(32px,5vw,50px);line-height:1.06;letter-spacing:-1.5px}h2{margin-top:0;font-size:23px;letter-spacing:-.4px}h3{font-size:17px;margin:8px 0 15px}p{line-height:1.58}.muted,small{color:var(--muted)}
+    header p{max-width:600px;margin:12px 0 0;color:#f5ebd0;font-size:16px}header .hero-mark{display:flex;align-items:center;justify-content:center;flex:0 0 175px;height:150px;border:1px solid #ffffff32;border-radius:24px;background:#ffffff0b;backdrop-filter:blur(4px)}
+    .hero-mark svg{width:132px;height:98px}.hero-mark path{fill:none;stroke:var(--cream);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.hero-mark circle{fill:#f5ebd0}
+    .nav{display:flex;gap:10px;margin:20px 0}.nav a,button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border-radius:9px;border:1px solid var(--wine);text-decoration:none;font:inherit;font-weight:750;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+    .nav a{color:var(--wine);background:var(--surface)}.nav a:hover,button:hover{transform:translateY(-1px);box-shadow:0 7px 16px #7f011f20}.nav a.active,button{color:#fff;background:var(--wine)}button{cursor:pointer}button:hover,.nav a.active{background:var(--berry)}
+    section{padding:25px 27px}.section-kicker{color:var(--berry);font-size:11px;font-weight:850;letter-spacing:1.8px;text-transform:uppercase}
+    form{display:flex;gap:13px;align-items:end;flex-wrap:wrap;margin:19px 0 10px;padding:16px;background:var(--ivory);border:1px solid var(--line);border-radius:12px}
+    label{display:inline-block;margin-bottom:6px;font-size:13px;font-weight:800;color:var(--wine)}input,select{padding:11px 13px;border:1px solid #cbb8b5;border-radius:8px;background:#fffdf9;color:var(--ink);font:inherit;min-width:180px}input:focus,select:focus,button:focus-visible,.nav a:focus-visible{outline:3px solid #89014955;outline-offset:2px}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:13px;margin:18px 0}
+    .card{background:linear-gradient(145deg,#f5ebd0b8,var(--ivory));border:1px solid var(--line);padding:18px;border-radius:12px}.value{font-size:23px;font-weight:850;margin:7px 0;color:var(--wine)}
+    .winner{border-left:5px solid var(--berry)}.lowest{border-left:5px solid #a76b43}
+    .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:18px 0}
+    .chart-card{background:#fffefa;border:1px solid var(--line);border-radius:13px;padding:19px;min-width:0;box-shadow:0 7px 20px #4a142008}
+    .pie-layout{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap}
+    #year-pie{width:220px;height:220px;max-width:100%;filter:drop-shadow(0 6px 8px #4a14201b)}.legend{list-style:none;padding:0;margin:0}
+    .legend li{margin:10px 0;font-size:13px;font-weight:700}.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--line)}
+    .bars{display:grid;gap:14px;margin:17px 0}.bar-row{display:grid;grid-template-columns:48px minmax(80px,1fr) auto;gap:11px;align-items:center;font-size:13px}
+    .bar-track{height:15px;background:#eee5dc;border-radius:99px;overflow:hidden}.bar{height:100%;min-width:2px;background:linear-gradient(90deg,var(--wine),var(--berry));border-radius:99px;transition:width .45s ease}
+    .bar-row.high .bar{background:linear-gradient(90deg,#7F011F,#c13561)}.bar-row.low .bar{background:linear-gradient(90deg,#a76b43,#d9a366)}
+    .scroll{max-height:570px;overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{text-align:right;padding:12px 13px;border-bottom:1px solid #eee5dc;white-space:nowrap}
+    th:first-child,td:first-child{text-align:left}thead{position:sticky;top:0;background:var(--wine);color:#fff}tbody tr:nth-child(even){background:#f5ebd04d}tbody tr:hover{background:#f5ebd0}
+    .notice{padding:14px 17px;background:var(--cream);color:#4b1627;border:1px solid #e6d6b7;border-left:5px solid var(--berry);border-radius:9px}
+    .empty{padding:24px;text-align:center;background:var(--ivory);border:1px dashed #c8aaa9;border-radius:10px}
+    footer{padding:16px 4px;color:var(--muted);font-size:12px;text-align:center}
+    @media(max-width:650px){main{padding:18px 12px}header,section{border-radius:13px}header{display:block;padding:25px 22px;min-height:auto}header .hero-mark{display:none}h1{font-size:34px}.nav{display:grid}.nav a{justify-content:flex-start}.pie-layout{justify-content:center}form>div{width:100%}input,select{width:100%}.charts{grid-template-columns:1fr}section{padding:20px 17px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="hero-copy">
+      <div class="eyebrow">UCI ELECTRICITY LOAD DIAGRAMS · 2011—2014</div>
+      <h1>Power, in perspective.</h1>
+      <p>Explore client energy patterns, compare annual demand, and discover how load changes across the years.</p>
+    </div>
+    <div class="hero-mark" aria-hidden="true">
+      <svg viewBox="0 0 160 110"><path d="M8 61h28l14-38 21 72 20-51 14 27 12-10h35"/><circle cx="36" cy="61" r="4"/><circle cx="115" cy="71" r="4"/></svg>
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="Dashboard pages">
+    <a href="{{ url_for('home', page='client') }}" class="{{ 'active' if page == 'client' else '' }}">1 · Client yearly usage</a>
+    <a href="{{ url_for('home', page='year', year=selected_year) }}" class="{{ 'active' if page == 'year' else '' }}">2 · Yearly client ranking</a>
+  </nav>
+
+  {% if page == 'client' %}
+  <section>
+    <h2>Page 1 · Look up a client</h2>
+    <p class="muted">Enter an ID such as MT_001 to see that client's annual figures for 2011, 2012, 2013 and 2014.</p>
+    <form method="get" action="{{ url_for('home') }}">
+      <input type="hidden" name="page" value="client">
+      <div><label for="client-id">Client ID</label><br>
+        <input id="client-id" name="client_id" value="{{ client_id }}" placeholder="MT_001" maxlength="20" required></div>
+      <div><label for="pie-metric">Pie chart basis</label><br>
+        <select id="pie-metric" name="pie_metric">
+          {% for key, metric in metrics.items() %}
+          <option value="{{ key }}" {{ 'selected' if key == pie_metric else '' }}>{{ metric.label }}</option>
+          {% endfor %}
+        </select></div>
+      <button type="submit">Show client</button>
+    </form>
+
+    {% if client %}
+      {% set peak_total = client.records | map(attribute='energy_kwh') | max %}
+      <p class="notice"><strong>{{ client.client_id }}</strong> used the most energy in
+        <strong>{{ client.highest_year }}</strong> and the least in <strong>{{ client.lowest_year }}</strong>,
+        comparing annual total kWh.</p>
+      <div class="charts">
+        <div class="chart-card">
+          <h3>Yearly share · {{ metrics[pie_metric].label }}</h3>
+          <div class="pie-layout">
+            <svg id="year-pie" viewBox="0 0 220 220" role="img" aria-label="Pie chart of the client's total energy split by year"></svg>
+            <ul id="year-legend" class="legend"></ul>
+          </div>
+          <small>Each slice is that year's share of this client's combined annual {{ metrics[pie_metric].label }} values.</small>
+        </div>
+        <div class="chart-card">
+          <h3>Annual total energy · kWh</h3>
+          <div class="bars">
+            {% for row in client.records %}
+            <div class="bar-row {{ 'high' if row.year == client.highest_year else 'low' if row.year == client.lowest_year else '' }}">
+              <strong>{{ row.year }}</strong>
+              <div class="bar-track" role="img" aria-label="{{ row.year }} total energy {{ '%.2f'|format(row.energy_kwh) }} kWh">
+                <div class="bar" style="width:{{ (row.energy_kwh / peak_total * 100) if peak_total else 0 }}%"></div>
+              </div>
+              <span>{{ "{:,.2f}".format(row.energy_kwh) }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          <small>Green marks the highest year; orange marks the lowest.</small>
+        </div>
+      </div>
+      <h3>Year-by-year client metrics</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Year</th><th>Days</th><th>Total kWh</th><th>Mean kWh/day</th><th>Max daily kWh</th><th>Peak kW</th></tr></thead>
+        <tbody>{% for row in client.records %}
+          <tr><td>{{ row.year }}</td><td>{{ row.days }}</td><td>{{ "{:,.2f}".format(row.energy_kwh) }}</td>
+            <td>{{ "{:,.2f}".format(row.mean_daily_kwh) }}</td><td>{{ "{:,.2f}".format(row.max_daily_kwh) }}</td>
+            <td>{{ "{:,.2f}".format(row.peak_kw) }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      <script>
+      (() => {
+        const values = {{ client.records | map(attribute=pie_metric) | list | tojson }};
+        const years = {{ client.records | map(attribute='year') | list | tojson }};
+        const metricUnit = {{ metrics[pie_metric].unit | tojson }};
+        const colors = ['#7F011F', '#890149', '#D7B980', '#C78A9E'];
+        const svg = document.getElementById('year-pie');
+        const legend = document.getElementById('year-legend');
+        const total = values.reduce((sum, value) => sum + value, 0);
+        let angle = -Math.PI / 2;
+        if (!total) {
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', '110'); text.setAttribute('y', '115');
+          text.setAttribute('text-anchor', 'middle'); text.textContent = 'No values';
+          svg.appendChild(text);
+        } else {
+          values.forEach((value, index) => {
+            const next = angle + value / total * Math.PI * 2;
+            const x1 = 110 + 100 * Math.cos(angle), y1 = 110 + 100 * Math.sin(angle);
+            const x2 = 110 + 100 * Math.cos(next), y2 = 110 + 100 * Math.sin(next);
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M 110 110 L ${x1} ${y1} A 100 100 0 ${next-angle > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`);
+            path.setAttribute('fill', colors[index % colors.length]);
+            path.setAttribute('aria-label', `${years[index]}: ${value.toLocaleString()} ${metricUnit}`);
+            svg.appendChild(path);
+            const item = document.createElement('li');
+            const dot = document.createElement('span'); dot.className = 'dot';
+            dot.style.backgroundColor = colors[index % colors.length];
+            item.append(dot, document.createTextNode(`${years[index]} · ${(value / total * 100).toFixed(1)}% · ${value.toLocaleString(undefined, {maximumFractionDigits: 2})} ${metricUnit}`));
+            legend.appendChild(item);
+            angle = next;
+          });
+        }
+      })();
+      </script>
+    {% elif client_id %}
+      <p class="notice">No data found for <strong>{{ client_id }}</strong>. Check the ID (for example, MT_001).</p>
+    {% endif %}
+  </section>
+  {% else %}
+  <section>
+    <h2>Page 2 · Highest and lowest client usage</h2>
+    <p class="muted">Choose a year, ranking metric, and Top K to control the client ranking.</p>
+    <form method="get" action="{{ url_for('home') }}">
+      <input type="hidden" name="page" value="year">
+      <div><label for="year-select">Year</label><br>
+        <select id="year-select" name="year">{% for year in years %}
+          <option value="{{ year }}" {{ 'selected' if year == selected_year else '' }}>{{ year }}</option>
+        {% endfor %}</select></div>
+      <div><label for="rank-metric">Rank clients by</label><br>
+        <select id="rank-metric" name="metric">
+          {% for key, metric in metrics.items() %}
+          <option value="{{ key }}" {{ 'selected' if key == rank_metric else '' }}>{{ metric.label }}</option>
+          {% endfor %}
+        </select></div>
+      <div><label for="top-k">Top K clients</label><br>
+        <input id="top-k" name="top_k" type="number" min="1" max="{{ data.clients }}" value="{{ top_k }}" required></div>
+      <button type="submit">Show rankings</button>
+    </form>
+    {% if ranking and ranking.most and ranking.least %}
+      <div class="cards">
+        <div class="card winner"><small>Highest {{ metrics[rank_metric].label }} · {{ selected_year }}</small>
+          <div class="value">{{ ranking.most.client_id }}</div>
+          <strong>{{ "{:,.2f}".format(ranking.most[rank_metric]) }} {{ metrics[rank_metric].unit }}</strong></div>
+        <div class="card lowest"><small>Lowest {{ metrics[rank_metric].label }} · {{ selected_year }}</small>
+          <div class="value">{{ ranking.least.client_id }}</div>
+          <strong>{{ "{:,.2f}".format(ranking.least[rank_metric]) }} {{ metrics[rank_metric].unit }}</strong></div>
+      </div>
+      <div class="charts">
+        <div class="chart-card"><h3>Highest vs lowest · {{ metrics[rank_metric].label }}</h3>
+          {% set maximum = ranking.most[rank_metric] %}
+          <div class="bars">
+            {% for row, label, klass in [(ranking.most, 'Most', 'high'), (ranking.least, 'Least', 'low')] %}
+            <div class="bar-row {{ klass }}"><strong>{{ label }}</strong>
+              <div class="bar-track"><div class="bar" style="width:{{ (row[rank_metric] / maximum * 100) if maximum else 0 }}%"></div></div>
+              <span>{{ "{:,.2f}".format(row[rank_metric]) }} {{ metrics[rank_metric].unit }}</span></div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="chart-card"><h3>How to read this</h3>
+          <p>Clients are ranked by <strong>{{ metrics[rank_metric].label }} ({{ metrics[rank_metric].unit }})</strong> over the selected calendar year.
+            The least-use value can be zero for a client whose readings are zero throughout that year.</p>
+          <p class="muted">Showing the top {{ ranking.top_k }} of {{ ranking.client_count }} clients.</p>
+        </div>
+      </div>
+      <h3>Top {{ ranking.top_k }} clients · {{ metrics[rank_metric].label }}</h3>
+      <div class="scroll"><table><thead><tr><th>Rank</th><th>Client ID</th><th>Days recorded</th><th>Total kWh</th><th>Mean kWh/day</th><th>Max daily kWh</th><th>Peak kW</th></tr></thead>
+        <tbody>{% for row in ranking.clients %}
+          <tr><td>{{ loop.index }}</td><td>{{ row.client_id }}</td><td>{{ row.days }}</td>
+            <td>{{ "{:,.2f}".format(row.energy_kwh) }}</td><td>{{ "{:,.2f}".format(row.mean_daily_kwh) }}</td>
+            <td>{{ "{:,.2f}".format(row.max_daily_kwh) }}</td><td>{{ "{:,.2f}".format(row.peak_kw) }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+    {% else %}
+      <p class="empty">No client summaries are available for {{ selected_year }}.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <footer>kWh is calculated by dividing each 15-minute kW reading by four. Source DST values are retained as supplied.</footer>
+</main>
+</body>
+</html>

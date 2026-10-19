@@ -1,89 +1,65 @@
-# What is this project actually doing?
+# Architecture
 
-We take USDA food data, calculate nutrition summaries using several tools, check
-that their answers agree, and compare how quickly they work and how much space
-they use. The dashboard lets us see the saved answers and measurements.
+## Dataset
 
-## Follow one record through the project
+The source is UCI ElectricityLoadDiagrams20112014, a semicolon-separated file
+with 370 client columns and 140,256 interval rows. A value is power in kW for a
+15-minute interval. Each interval's energy is therefore `kW / 4` kWh.
 
-A food has an ID, description and type. Its nutrient measurements live in another
-CSV. We connect them using the food ID, then connect the nutrient ID to its name
-and unit. For example, a protein observation belongs to a particular food and has
-an amount measured in grams.
+The timestamp marks the end of its interval. Preparation assigns readings to
+the date of the interval start (`timestamp - 15 minutes`), so the midnight
+boundary readings remain within their preceding day. Daily records are checked
+to contain 96 observations per client. Zeroes remain explicit; they are not
+treated as null or removed.
 
-We group observations by food type and nutrient ID, then calculate how many
-observations there are, their total and their average. We never add protein and
-sodium together or mix different units. These averages describe the data; they
-are not dietary advice or necessarily averages per 100 g.
+## Processing flow
 
-## Why do we use so many tools?
-
-| Tool | Its job in our project |
-| --- | --- |
-| Python + SQLite | Read the CSVs in manageable pieces and connect food/nutrient records without loading everything into RAM. |
-| MongoDB | Store the original CSV records as documents, connect foods to nutrients and calculate summaries. |
-| MongoDB indexes | Help find a food without checking every document. We measure both approaches. |
-| HDFS | Store files across the workers, keeping two copies for this setup. |
-| YARN | Decide which worker runs each processing task. |
-| MapReduce | Workers process portions of the input; reducers combine observations into counts, totals and averages. |
-| Pig | Clean the prepared records, including filtering negative nutrient amounts from the analysis. |
-| Hive | Run SQL-style questions on the cleaned data. Compare normal Text storage with compressed RCFile storage. |
-| Flask | Show saved results and optionally launch fixed laptop workflows with progress/logs. Viewing alone needs no services. |
-
-## How are the machines connected?
-
-```mermaid
-flowchart TD
-    ZIP[USDA ZIP] --> Mongo[MongoDB analysis]
-    ZIP --> Prep[Python prepares linked records]
-    Prep --> HDFS[HDFS stores files on workers]
-    HDFS --> MR[MapReduce summaries]
-    HDFS --> Pig[Pig cleaning]
-    Pig --> Hive[Hive Text and RCFile queries]
-    Mongo --> Results[Check answers and save results]
-    MR --> Results
-    Hive --> Results
-    Results --> Web[Dashboard and report]
+```text
+LD2011_2014.txt
+  -> electricity.prepare: validate rows and stream to daily.tsv
+  -> Python reference aggregation + Hadoop Streaming cross-check
+  -> optional MongoDB daily collection and annual aggregation
+  -> Pig validation/cleaning -> Hive Text and RCFile tables
+  -> saved JSON/TSV results -> Flask dashboard
 ```
 
-The **master** coordinates file locations and processing jobs. **Worker 1 and
-worker 2** store data and execute tasks. MongoDB is a separate service on the
-master; we have not set up a sharded MongoDB cluster.
+The normalized TSV has six columns:
 
-On your laptop, Docker creates three separate software containers playing these
-roles. They still share your laptop's RAM and disk. At college, the roles run on
-three actual machines.
+| Column | Meaning |
+|---|---|
+| `date` | Date assigned to the 15-minute intervals ending on that date |
+| `client_id` | UCI client identifier, e.g. `MT_001` |
+| `intervals` | Expected to be 96 |
+| `energy_kwh` | Daily sum of interval kW readings divided by four |
+| `mean_kw` | Average interval power for the day |
+| `peak_kw` | Maximum recorded 15-minute power |
 
-## How do we know the answers are right?
+The main report groups by client and year. It contains number of days, total
+kWh, mean daily kWh, maximum daily kWh, and peak interval kW. MapReduce computes
+the same annual summary from daily rows; the local workflow compares the two
+before saving results.
 
-We count input, rejected and cleaned records; independently calculate expected
-summaries; then compare counts, totals and averages with MongoDB, MapReduce and
-Hive. We also save the ZIP's SHA-256: a fingerprint that identifies the file used.
-Timing comparisons exclude initial Hive warmups and show how many measurements
-were taken. Faster results are useful only if the answers still match.
+## Dashboard pages
 
-## What have we finished?
+Page 1 looks up one client by ID and displays its available annual metrics for
+2011–2014. A dropdown selects Total kWh, Mean kWh/day, Max daily kWh, or Peak
+kW as the pie basis. Slices show each year’s share of the selected metric's sum
+across available years, while a bar chart compares annual total kWh and
+highlights highest/lowest consumption years. Page 2 takes a calendar year, a
+ranking metric, and Top K (1–370); it highlights the metric's maximum and
+minimum clients and displays the top K in sorted order. The pie compares one
+measure at a time instead of mixing energy and power units.
 
-The entire ZIP was prepared and imported into MongoDB: 2,063,876 foods and
-26,848,323 nutrient observations. All three themes passed on the linked
-**10,000-food development subset**, and the dashboard works. That subset contains
-mostly branded foods, so it does not represent every food type equally.
-Your laptop also passed the linked **50,000-food subset**, containing 1,126,928
-nutrient observations. Both are development checks rather than full-data runs.
+## Distributed tools
 
-The final full-data analysis, measurements on three college machines, and report/
-demo evidence are still pending. A successful small run does not prove that a
-larger run will fit in memory or finish without issues.
+- **HDFS** stores the normalized TSV across the cluster.
+- **YARN and Hadoop Streaming** execute the Python mapper and reducer.
+- **Pig** validates the daily schema and retains valid zero-load readings.
+- **Hive** queries the same daily rows in Text and RCFile formats.
+- **MongoDB** is an optional separate persistence and aggregation path.
+- **Flask** reads completed local analytics; it does not start data jobs.
 
-Key files: `fdc/prepare.py` prepares data; `fdc/mongo.py` handles MongoDB;
-`mapreduce/`, `pig/` and `hive/` contain the processing jobs; `fdc/part1.py` runs
-the full workflow; `fdc/report.py` checks results; `fdc/dashboard.py` shows them.
-
-The UI runner (`fdc/dashboard_jobs.py`) starts one background worker per job.
-It uses a process lock to prevent simultaneous UI jobs, saves progress in
-`data/ui_jobs/`, and invokes fixed command lists rather than arbitrary shell text.
-The laptop's Run analysis tab starts at Ready and follows active UI jobs every
-two seconds; previous runs must be selected explicitly. In the three-PC setup,
-the master launches `fdc.part1 --cluster-mode client` from Terminal and serves the
-dashboard with `--view-only`. That mode shows saved results; terminal logs provide
-progress while the native cluster run executes.
+Portuguese-time daylight-saving handling is kept exactly as supplied. The
+spring transition contains zero values and the autumn transition aggregates
+two hours into the 1:00–2:00 labels. Annual and daily sums use the supplied
+values; time-of-day comparisons around these transitions require care.
