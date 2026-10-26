@@ -22,7 +22,7 @@ services:
     volumes:
       - ..:/project
       - ../data/tools:/opt:ro
-      - ../data/cluster/master:/state
+      - /home/adminubuntu/BDA-Assignment/data/cluster/master:/state
   worker1:
     <<: *node
     hostname: worker1
@@ -31,7 +31,7 @@ services:
     volumes:
       - ..:/project
       - ../data/tools:/opt:ro
-      - ../data/cluster/worker1:/state
+      - /home/adminubuntu/BDA-Assignment/data/cluster/worker1:/state
   worker2:
     <<: *node
     hostname: worker2
@@ -40,4 +40,4 @@ services:
     volumes:
       - ..:/project
       - ../data/tools:/opt:ro
-      - ../data/cluster/worker2:/state
+      - /home/adminubuntu/BDA-Assignment/data/cluster/worker2:/state
