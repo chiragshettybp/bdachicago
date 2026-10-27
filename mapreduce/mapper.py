@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Map daily client energy into annual client groups. Input: daily.tsv."""
+"""Map daily service request counts into annual groups. Input: daily.tsv."""
 import math
 import sys
 
@@ -9,13 +9,20 @@ def map_rows(source, destination):
         fields = line.rstrip("\n").split("\t")
         if len(fields) != 6:
             raise ValueError(f"Expected six fields at line {number}")
-        day, client, intervals, energy, _, peak = fields
-        if len(day) != 10 or day[4] != "-" or int(intervals) != 96:
+        day, sr_type, requests, completed, canceled, resolution = fields
+        if len(day) != 10 or day[4] != "-" or not sr_type:
             raise ValueError(f"Invalid daily record at line {number}")
-        total, peak_kw = float(energy), float(peak)
-        if not math.isfinite(total) or not math.isfinite(peak_kw) or total < 0 or peak_kw < 0:
+        try:
+            request_count = int(requests)
+            completed_count = int(completed)
+            resolution_days = float(resolution)
+        except ValueError as error:
+            raise ValueError(f"Invalid reading at line {number}") from error
+        if request_count < 0 or completed_count < 0 or resolution_days < 0:
             raise ValueError(f"Invalid reading at line {number}")
-        print(f"{client}|{day[:4]}\t{total!r}\t{total!r}\t{peak_kw!r}", file=destination)
+        year = day[:4]
+        print(f"{sr_type}|{year}\t{request_count}\t{request_count}\t{resolution_days}\t{completed_count}",
+              file=destination)
 
 
 if __name__ == "__main__":

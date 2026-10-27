@@ -1,4 +1,4 @@
-"""Profile MongoDB queries against an imported electricity dataset."""
+"""Profile MongoDB queries against an imported 311 service request dataset."""
 
 import argparse
 import json
@@ -37,11 +37,11 @@ def _execution_summaries(explain):
     return summaries
 
 
-def profile_database(database, client_id, output_path):
-    if not re.fullmatch(r"electricity_[A-Za-z0-9_]+", database):
-        raise ValueError("Use the imported database named electricity_<name>")
-    if not re.fullmatch(r"MT_\d{3}", client_id):
-        raise ValueError("client-id must look like MT_001")
+def profile_database(database, sr_type, output_path):
+    if not re.fullmatch(r"(service_requests|chicago311)_[A-Za-z0-9_]+", database):
+        raise ValueError("Use the imported database named service_requests_<name>")
+    if not sr_type.strip():
+        raise ValueError("sr-type must be a valid service request type")
 
     client = MongoClient(
         os.environ.get("MONGODB_URI", "mongodb://127.0.0.1:27017"),
@@ -56,26 +56,27 @@ def profile_database(database, client_id, output_path):
                 f"No imported daily_readings documents found in database {database}"
             )
 
-        query = {"client_id": client_id, "year": {"$gte": 2011, "$lte": 2014}}
+        query = {"sr_type": sr_type, "year": {"$gte": 2018, "$lte": 2026}}
         find_explain = client[database].command(
             "explain",
             {
                 "find": "daily_readings",
                 "filter": query,
-                "projection": {"_id": 0, "date": 1, "energy_kwh": 1},
+                "projection": {"_id": 0, "date": 1, "requests": 1},
                 "limit": 100,
             },
             verbosity="executionStats",
         )
         aggregation = [
-            {"$match": {"client_id": client_id}},
+            {"$match": {"sr_type": sr_type}},
             {
                 "$group": {
                     "_id": "$year",
                     "days": {"$sum": 1},
-                    "energy_kwh": {"$sum": "$energy_kwh"},
-                    "max_daily_kwh": {"$max": "$energy_kwh"},
-                    "peak_kw": {"$max": "$peak_kw"},
+                    "requests": {"$sum": "$requests"},
+                    "max_daily_requests": {"$max": "$requests"},
+                    "resolution_days": {"$sum": "$resolution_days"},
+                    "completed": {"$sum": "$completed"},
                 }
             },
             {
@@ -83,10 +84,11 @@ def profile_database(database, client_id, output_path):
                     "_id": 0,
                     "year": "$_id",
                     "days": 1,
-                    "energy_kwh": 1,
-                    "mean_daily_kwh": {"$divide": ["$energy_kwh", "$days"]},
-                    "max_daily_kwh": 1,
-                    "peak_kw": 1,
+                    "requests": 1,
+                    "mean_daily_requests": {"$divide": ["$requests", "$days"]},
+                    "max_daily_requests": 1,
+                    "avg_resolution_days": {"$cond": [{"$gt": ["$completed", 0]},
+                                                      {"$divide": ["$resolution_days", "$completed"]}, 0.0]},
                 }
             },
             {"$sort": {"year": 1}},
@@ -106,18 +108,18 @@ def profile_database(database, client_id, output_path):
         report = {
             "database": database,
             "collection": "daily_readings",
-            "client_id": client_id,
+            "sr_type": sr_type,
             "document_count": document_count,
             "indexes": {
                 name: {"keys": details["key"], "unique": details.get("unique", False)}
                 for name, details in indexes.items()
             },
             "query_profile": {
-                "description": "Find daily records for one client across 2011-2014",
+                "description": "Find daily records for one service request type across years",
                 "explain_execution_stats": _execution_summaries(find_explain),
             },
             "aggregation_profile": {
-                "description": "Group the selected client's daily records by year",
+                "description": "Group the selected service request type's daily records by year",
                 "explain_execution_stats": _execution_summaries(aggregate_explain),
                 "annual_results": annual_results,
             },
@@ -132,11 +134,11 @@ def profile_database(database, client_id, output_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database", default="electricity_2011_2014")
-    parser.add_argument("--client-id", default="MT_001")
+    parser.add_argument("--database", default="service_requests_311")
+    parser.add_argument("--sr-type", default="Pothole in Street Complaint")
     parser.add_argument("--output", default="results/mongodb-analytics.json")
     args = parser.parse_args()
-    report = profile_database(args.database, args.client_id, args.output)
+    report = profile_database(args.database, args.sr_type, args.output)
     print(json.dumps(report, indent=2, default=str))
 
 

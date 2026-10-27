@@ -1,10 +1,11 @@
--- Preserve valid zero-load readings; reject malformed daily summaries.
+-- Preserve valid service request counts; reject malformed daily summaries.
 raw = LOAD '$INPUT' USING PigStorage('\t') AS (
-    reading_date:chararray, client_id:chararray, intervals:int,
-    energy_kwh:double, mean_kw:double, peak_kw:double
+    reading_date:chararray, sr_type:chararray, requests:int,
+    completed:int, canceled:int, resolution_days:double
 );
-clean = FILTER raw BY reading_date IS NOT NULL AND client_id IS NOT NULL
-    AND intervals == 96 AND energy_kwh IS NOT NULL AND energy_kwh >= 0.0
-    AND mean_kw IS NOT NULL AND mean_kw >= 0.0
-    AND peak_kw IS NOT NULL AND peak_kw >= 0.0;
+clean = FILTER raw BY reading_date IS NOT NULL AND sr_type IS NOT NULL
+    AND requests IS NOT NULL AND requests >= 0
+    AND completed IS NOT NULL AND completed >= 0
+    AND canceled IS NOT NULL AND canceled >= 0
+    AND resolution_days IS NOT NULL AND resolution_days >= 0.0;
 STORE clean INTO '$OUTPUT' USING PigStorage('\t');

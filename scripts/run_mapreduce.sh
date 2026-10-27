@@ -12,7 +12,7 @@ jars=("$HADOOP_HOME"/share/hadoop/tools/lib/hadoop-streaming-*.jar)
 [[ $(hdfs getconf -confKey fs.defaultFS) == hdfs://* ]] || { echo 'An HDFS cluster is required' >&2; exit 1; }
 hadoop jar "${jars[0]}" \
   -D mapreduce.framework.name=yarn \
-  -D mapreduce.job.name=electricity-annual-client-summary \
+  -D mapreduce.job.name=chicago311-annual-type-summary \
   -D mapreduce.job.reduces="$reducers" \
   -files mapreduce/mapper.py,mapreduce/reducer.py \
   -mapper 'python3 mapper.py' -reducer 'python3 reducer.py' \

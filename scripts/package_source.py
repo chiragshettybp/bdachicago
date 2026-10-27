@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def package(output):
-    files = [ROOT / name for name in ("README.md", "requirements.txt", ".gitignore")]
-    for name in ("electricity", "hadoop", "hive", "infra", "mapreduce", "pig", "scripts", "tests", "docs"):
+    files = [ROOT / name for name in ("README.md", "EXAMPLES.md", "viva.md", "requirements.txt", ".gitignore")]
+    for name in ("service_requests", "hadoop", "hive", "infra", "mapreduce", "pig", "scripts", "tests"):
         for path in sorted((ROOT / name).rglob("*")):
             relative = path.relative_to(ROOT / name)
             if any(part in {"downloads", "__pycache__"} or part.startswith(".") for part in relative.parts):

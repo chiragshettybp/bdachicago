@@ -1,6 +1,6 @@
 import unittest
 
-from electricity.mongo_profile import _execution_summaries, profile_database
+from service_requests.mongo_profile import _execution_summaries, profile_database
 
 
 class MongoProfileTests(unittest.TestCase):
@@ -25,10 +25,10 @@ class MongoProfileTests(unittest.TestCase):
         }])
 
     def test_profile_validates_arguments_before_connecting(self):
-        with self.assertRaisesRegex(ValueError, "electricity_"):
-            profile_database("other_database", "MT_001", "report.json")
-        with self.assertRaisesRegex(ValueError, "MT_001"):
-            profile_database("electricity_demo", "bad-client", "report.json")
+        with self.assertRaisesRegex(ValueError, "service_requests_"):
+            profile_database("other_database", "Pothole in Street Complaint", "report.json")
+        with self.assertRaisesRegex(ValueError, "service request type"):
+            profile_database("service_requests_demo", "", "report.json")
 
 
 if __name__ == "__main__":

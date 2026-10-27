@@ -4,7 +4,6 @@ __pycache__/
 .env
 data/
 results/
-electricityloaddiagrams20112014/
 .coverage
 infra/downloads/
 derby.log
